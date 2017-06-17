@@ -1,0 +1,50 @@
+margin = 17
+using print_if_newline:
+before
+  if newline
+  after later
+using print_string_if_newline:
+before
+  if newline
+  after later
+
+margin = 18
+using print_if_newline:
+before 
+  after
+        later
+using print_string_if_newline:
+before 
+  after later
+
+margin = 20
+using print_if_newline:
+before 
+  after
+        later
+using print_string_if_newline:
+before  after
+   later
+
+margin = 30
+using print_if_newline:
+before  after later
+using print_string_if_newline:
+before  after later
+
+margin = 19
+before
+  broke after
+  final
+margin = 20
+before  after final
+
+margin = 22
+before
+  after
+   broke
+  final
+margin = 23
+before after fit final
+
+All tests succeeded.
