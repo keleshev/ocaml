@@ -675,7 +675,8 @@ let pp_force_newline state () =
 (* To format something, only in case the line has just been broken. *)
 let pp_print_if_newline state () =
   if state.pp_curr_depth < state.pp_max_boxes then
-    enqueue_advance state { size = Size.zero; token = Pp_if_newline; length = 0 }
+    enqueue_advance state
+      { size = Size.zero; token = Pp_if_newline; length = 0 }
 
 
 (* Printing break hints:
