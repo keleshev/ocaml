@@ -114,9 +114,6 @@ type pp_queue = pp_queue_elem Queue.t
    is the value of pp_left_total when the element has been enqueued. *)
 type pp_scan_elem = Scan_elem of int * pp_queue_elem
 
-(* The pretty-printer scanning stack definition. *)
-type pp_scan_stack = pp_scan_elem list
-
 (* The pretty-printer formatting stack:
    the formatting stack contains the description of all the currently active
    boxes; the pretty-printer formatting stack is used to split the lines
@@ -126,22 +123,18 @@ type pp_scan_stack = pp_scan_elem list
    Each stack element describes a pretty-printing box. *)
 type pp_format_elem = Format_elem of box_type * int
 
-(* The pretty-printer formatting stack definition. *)
-type pp_format_stack = pp_format_elem list
-
-(* The pretty-printer semantics tag stack definition. *)
-type pp_tag_stack = tag list
-
 (* The formatter definition.
    Each formatter value is a pretty-printer instance with all its
    machinery. *)
 type formatter = {
-  (* The various stacks. *)
-  mutable pp_scan_stack : pp_scan_stack;
-  mutable pp_format_stack : pp_format_stack;
-  mutable pp_tbox_stack : tbox list;
-  mutable pp_tag_stack : pp_tag_stack;
-  mutable pp_mark_stack : pp_tag_stack;
+  (* The pretty-printer scanning stack. *)
+  pp_scan_stack : pp_scan_elem Stack.t;
+  (* The pretty-printer formatting stack. *)
+  pp_format_stack : pp_format_elem Stack.t;
+  pp_tbox_stack : tbox Stack.t;
+  (* The pretty-printer semantics tag stack. *)
+  pp_tag_stack : tag Stack.t;
+  pp_mark_stack : tag Stack.t;
   (* Value of right margin. *)
   mutable pp_margin : int;
   (* Minimal space left before margin, when opening a box. *)
@@ -278,14 +271,13 @@ let break_same_line state width =
    beyond pp_max_indent, then the box is rejected on the left
    by simulating a break. *)
 let pp_force_break_line state =
-  match state.pp_format_stack with
-  | Format_elem (bl_ty, width) :: _ ->
+  match Stack.top_opt state.pp_format_stack with
+  | None -> pp_output_newline state
+  | Some (Format_elem (box_type, width)) ->
     if width > state.pp_space_left then
-      (match bl_ty with
-       | Pp_fits -> () | Pp_hbox -> ()
-       | Pp_vbox | Pp_hvbox | Pp_hovbox | Pp_box ->
-         break_line state width)
-  | [] -> pp_output_newline state
+      match box_type with
+      | Pp_fits | Pp_hbox -> ()
+      | Pp_vbox | Pp_hvbox | Pp_hovbox | Pp_box -> break_line state width
 
 
 (* To skip a token, if the previous line has been broken. *)
@@ -316,44 +308,36 @@ let format_pp_token state size = function
       (* can not open a box right there. *)
       begin pp_force_break_line state end;
     let offset = state.pp_space_left - off in
-    let bl_type =
-      begin match ty with
+    let box_type =
+      match ty with
       | Pp_vbox -> Pp_vbox
       | Pp_hbox | Pp_hvbox | Pp_hovbox | Pp_box | Pp_fits ->
-        if size > state.pp_space_left then ty else Pp_fits
-      end in
-    state.pp_format_stack <-
-      Format_elem (bl_type, offset) :: state.pp_format_stack
+        if size > state.pp_space_left then ty else Pp_fits in
+    Stack.push (Format_elem (box_type, offset)) state.pp_format_stack
 
   | Pp_end ->
-    begin match state.pp_format_stack with
-    | _ :: ls -> state.pp_format_stack <- ls
-    | [] -> () (* No more box to close. *)
-    end
+    Stack.pop_opt state.pp_format_stack |> ignore
 
   | Pp_tbegin (Pp_tbox _ as tbox) ->
-    state.pp_tbox_stack <- tbox :: state.pp_tbox_stack
+    Stack.push tbox state.pp_tbox_stack
 
   | Pp_tend ->
-    begin match state.pp_tbox_stack with
-    | _ :: ls -> state.pp_tbox_stack <- ls
-    | [] -> () (* No more tabulation box to close. *)
-    end
+    Stack.pop_opt state.pp_tbox_stack |> ignore
 
   | Pp_stab ->
-    begin match state.pp_tbox_stack with
-    | Pp_tbox tabs :: _ ->
+    begin match Stack.top_opt state.pp_tbox_stack with
+    | Some (Pp_tbox tabs) ->
       let rec add_tab n = function
         | [] -> [n]
         | x :: l as ls -> if n < x then n :: ls else x :: add_tab n l in
       tabs := add_tab (state.pp_margin - state.pp_space_left) !tabs
-    | [] -> () (* No open tabulation box. *)
+    | None -> () (* No open tabulation box. *)
     end
 
   | Pp_tbreak (n, off) ->
     let insertion_point = state.pp_margin - state.pp_space_left in
-    begin match state.pp_tbox_stack with
-    | Pp_tbox tabs :: _ ->
+    begin match Stack.top_opt state.pp_tbox_stack with
+    | Some (Pp_tbox tabs) ->
       let rec find n = function
         | x :: l -> if x >= n then x else find n l
         | [] -> raise_notrace Not_found in
@@ -369,13 +353,13 @@ let format_pp_token state size = function
       if offset >= 0
       then break_same_line state (offset + n)
       else break_new_line state (tab + off) state.pp_margin
-    | [] -> () (* No open tabulation box. *)
+    | None -> () (* No open tabulation box. *)
     end
 
   | Pp_newline ->
-    begin match state.pp_format_stack with
-    | Format_elem (_, width) :: _ -> break_line state width
-    | [] -> pp_output_newline state (* No open box. *)
+    begin match Stack.top_opt state.pp_format_stack with
+    | Some (Format_elem (_, width)) -> break_line state width
+    | None -> pp_output_newline state (* No open box. *)
     end
 
   | Pp_if_newline ->
@@ -383,9 +367,9 @@ let format_pp_token state size = function
     then pp_skip_token state
 
   | Pp_break (n, off) ->
-    begin match state.pp_format_stack with
-    | Format_elem (ty, width) :: _ ->
-      begin match ty with
+    begin match Stack.top_opt state.pp_format_stack with
+    | Some (Format_elem (box_type, width)) ->
+      begin match box_type with
       | Pp_hovbox ->
         if size > state.pp_space_left
         then break_new_line state off width
@@ -404,21 +388,20 @@ let format_pp_token state size = function
       | Pp_vbox -> break_new_line state off width
       | Pp_hbox -> break_same_line state n
       end
-    | [] -> () (* No open box. *)
+    | None -> () (* No open box. *)
     end
 
    | Pp_open_tag tag_name ->
      let marker = state.pp_mark_open_tag tag_name in
      pp_output_string state marker;
-     state.pp_mark_stack <- tag_name :: state.pp_mark_stack
+     Stack.push tag_name state.pp_mark_stack
 
    | Pp_close_tag ->
-     begin match state.pp_mark_stack with
-     | tag_name :: tags ->
+     begin match Stack.pop_opt state.pp_mark_stack with
+     | Some tag_name ->
        let marker = state.pp_mark_close_tag tag_name in
        pp_output_string state marker;
-       state.pp_mark_stack <- tags
-     | [] -> () (* No more tag to close. *)
+     | None -> () (* No more tag to close. *)
      end
 
 
@@ -471,13 +454,9 @@ let enqueue_string state s =
    determine size of boxes. *)
 
 (* The scan_stack is never empty. *)
-let scan_stack_bottom =
-  let q_elem = make_queue_elem (Size.unknown) (Pp_text "") 0 in
-  [Scan_elem (-1, q_elem)]
-
-
-(* Clearing the pretty-printer scanning stack. *)
-let clear_scan_stack state = state.pp_scan_stack <- scan_stack_bottom
+let initialize_scan_stack stack =
+  Stack.clear stack;
+  Stack.push (Scan_elem (-1, make_queue_elem Size.unknown (Pp_text "") 0)) stack
 
 (* Setting the size of boxes on scan stack:
    if ty = true then size of break is set else size of box is set;
@@ -489,41 +468,36 @@ let clear_scan_stack state = state.pp_scan_stack <- scan_stack_bottom
    Pattern matching on token in scan stack is also exhaustive,
    since scan_push is used on breaks and opening of boxes. *)
 let set_size state ty =
-  match state.pp_scan_stack with
-  | Scan_elem
-      (left_tot,
-       ({ elem_size = size; token = tok; length = _; } as queue_elem)) :: t ->
-    let size = Size.to_int size in
+  match Stack.top_opt state.pp_scan_stack with
+  | None -> () (* scan_stack is never empty. *)
+  | Some (Scan_elem (left_total, ({ elem_size; token; _ } as queue_elem))) ->
+    let size = Size.to_int elem_size in
     (* test if scan stack contains any data that is not obsolete. *)
-    if left_tot < state.pp_left_total then clear_scan_stack state else
-      begin match tok with
+    if left_total < state.pp_left_total then
+      initialize_scan_stack state.pp_scan_stack
+    else
+      match token with
       | Pp_break (_, _) | Pp_tbreak (_, _) ->
-        if ty then
-        begin
+        if ty then begin
           queue_elem.elem_size <- Size.of_int (state.pp_right_total + size);
-          state.pp_scan_stack <- t
+          Stack.pop_opt state.pp_scan_stack |> ignore
         end
       | Pp_begin (_, _) ->
-        if not ty then
-        begin
+        if not ty then begin
           queue_elem.elem_size <- Size.of_int (state.pp_right_total + size);
-          state.pp_scan_stack <- t
+          Stack.pop_opt state.pp_scan_stack |> ignore
         end
       | Pp_text _ | Pp_stab | Pp_tbegin _ | Pp_tend | Pp_end
-      | Pp_newline | Pp_if_newline
-      | Pp_open_tag _ | Pp_close_tag ->
+      | Pp_newline | Pp_if_newline | Pp_open_tag _ | Pp_close_tag ->
         () (* scan_push is only used for breaks and boxes. *)
-      end
-  | [] -> () (* scan_stack is never empty. *)
 
 
 (* Push a token on pretty-printer scanning stack.
    If b is true set_size is called. *)
-let scan_push state b tok =
-  pp_enqueue state tok;
+let scan_push state b token =
+  pp_enqueue state token;
   if b then set_size state true;
-  state.pp_scan_stack <-
-    Scan_elem (state.pp_right_total, tok) :: state.pp_scan_stack
+  Stack.push (Scan_elem (state.pp_right_total, token)) state.pp_scan_stack
 
 
 (* To open a new box :
@@ -563,7 +537,7 @@ let pp_close_box state () =
 let pp_open_tag state tag_name =
   if state.pp_print_tags then
   begin
-    state.pp_tag_stack <- tag_name :: state.pp_tag_stack;
+    Stack.push tag_name state.pp_tag_stack;
     state.pp_print_open_tag tag_name
   end;
   if state.pp_mark_tags then
@@ -583,13 +557,10 @@ let pp_close_tag state () =
       length = 0;
     };
   if state.pp_print_tags then
-  begin
-    match state.pp_tag_stack with
-    | tag_name :: tags ->
+    match Stack.pop_opt state.pp_tag_stack with
+    | Some tag_name ->
       state.pp_print_close_tag tag_name;
-      state.pp_tag_stack <- tags
-    | _ -> () (* No more tag to close. *)
-  end
+    | None -> () (* No more tag to close. *)
 
 
 let pp_set_print_tags state b = state.pp_print_tags <- b
@@ -624,20 +595,18 @@ let pp_set_formatter_tag_functions state {
 (* Initialize pretty-printer. *)
 let pp_rinit state =
   pp_clear_queue state;
-  clear_scan_stack state;
-  state.pp_format_stack <- [];
-  state.pp_tbox_stack <- [];
-  state.pp_tag_stack <- [];
-  state.pp_mark_stack <- [];
+  initialize_scan_stack state.pp_scan_stack;
+  Stack.clear state.pp_format_stack;
+  Stack.clear state.pp_tbox_stack;
+  Stack.clear state.pp_tag_stack;
+  Stack.clear state.pp_mark_stack;
   state.pp_current_indent <- 0;
   state.pp_curr_depth <- 0;
   state.pp_space_left <- state.pp_margin;
   pp_open_sys_box state
 
 let clear_tag_stack state =
-  List.iter
-    (fun _ -> pp_close_tag state ())
-    state.pp_tag_stack
+  Stack.iter (fun _ -> pp_close_tag state ()) state.pp_tag_stack
 
 
 (* Flushing pretty-printer queue. *)
@@ -921,16 +890,17 @@ let pp_make_formatter f g h i j =
   let sys_tok =
     make_queue_elem Size.unknown (Pp_begin (0, Pp_hovbox)) 0 in
   Queue.add sys_tok pp_queue;
-  let sys_scan_stack =
-    Scan_elem (1, sys_tok) :: scan_stack_bottom in
+  let scan_stack = Stack.create () in
+  initialize_scan_stack scan_stack;
+  Stack.push (Scan_elem (1, sys_tok)) scan_stack;
   let pp_margin = 78
   and pp_min_space_left = 10 in
   {
-    pp_scan_stack = sys_scan_stack;
-    pp_format_stack = [];
-    pp_tbox_stack = [];
-    pp_tag_stack = [];
-    pp_mark_stack = [];
+    pp_scan_stack = scan_stack;
+    pp_format_stack = Stack.create ();
+    pp_tbox_stack = Stack.create ();
+    pp_tag_stack = Stack.create ();
+    pp_mark_stack = Stack.create ();
     pp_margin = pp_margin;
     pp_min_space_left = pp_min_space_left;
     pp_max_indent = pp_margin - pp_min_space_left;
