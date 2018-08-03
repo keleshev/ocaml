@@ -1755,7 +1755,7 @@ and check_usage loc id warn tbl =
     if Hashtbl.mem tbl key then ()
     else let used = ref false in
     Hashtbl.add tbl key (fun () -> used := true);
-    if not (name = "" || name.[0] = '_' || name.[0] = '#')
+    if not (name = "" || name.[0] = '_' || name.[0] = '#' || name = "rec")
     then
       !add_delayed_check_forward
         (fun () -> if not !used then Location.prerr_warning loc (warn name))

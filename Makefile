@@ -61,7 +61,7 @@ else
 OCAML_NATDYNLINKOPTS = -ccopt "$(NATDYNLINKOPTS)"
 endif
 
-YACCFLAGS=-v --strict
+YACCFLAGS=-v
 CAMLLEX=$(CAMLRUN) boot/ocamllex
 CAMLDEP=$(CAMLRUN) boot/ocamlc -depend
 DEPFLAGS=$(INCLUDES)

@@ -342,14 +342,32 @@ let mklb first (p, e) attrs =
               else symbol_text_lazy ();
     lb_loc = symbol_rloc (); }
 
-let mklbs ext rf lb =
-  { lbs_bindings = [lb];
+let mklbs ext rf =
+  { lbs_bindings = [];
     lbs_rec = rf;
     lbs_extension = ext ;
     lbs_loc = symbol_rloc (); }
 
 let addlb lbs lb =
-  { lbs with lbs_bindings = lb :: lbs.lbs_bindings }
+  if lbs.lbs_rec = Recursive then
+    { lbs with lbs_bindings = lb :: lbs.lbs_bindings }
+  else
+    { lbs with lbs_bindings = lb :: lbs.lbs_bindings }
+
+let get_var pat =
+  match pat with
+  | {ppat_desc=Ppat_var {txt=var; _}; _} -> Some var
+  | _ -> None
+
+let wrap rf pat expression =
+  if rf = Nonrecursive then expression else
+  let lhs = Pat.var ("#rec" |> Location.mknoloc) in
+  match get_var pat with
+  | None -> expression
+  | Some var ->
+      let rhs = Exp.ident (Lident var |> Location.mknoloc) in
+      let value_binding = Vb.mk lhs rhs in
+      Exp.let_ Nonrecursive [value_binding] expression
 
 let val_of_let_bindings lbs =
   let bindings =
@@ -358,7 +376,7 @@ let val_of_let_bindings lbs =
          Vb.mk ~loc:lb.lb_loc ~attrs:lb.lb_attributes
            ~docs:(Lazy.force lb.lb_docs)
            ~text:(Lazy.force lb.lb_text)
-           lb.lb_pattern lb.lb_expression)
+           lb.lb_pattern (wrap lbs.lbs_rec lb.lb_pattern lb.lb_expression))
       lbs.lbs_bindings
   in
   let str = mkstr(Pstr_value(lbs.lbs_rec, List.rev bindings)) in
@@ -371,7 +389,7 @@ let expr_of_let_bindings lbs body =
     List.map
       (fun lb ->
          Vb.mk ~loc:lb.lb_loc ~attrs:lb.lb_attributes
-           lb.lb_pattern lb.lb_expression)
+           lb.lb_pattern (wrap lbs.lbs_rec lb.lb_pattern lb.lb_expression))
       lbs.lbs_bindings
   in
     mkexp_attrs (Pexp_let(lbs.lbs_rec, List.rev bindings, body))
@@ -1456,6 +1474,8 @@ expr:
 simple_expr:
     val_longident
       { mkexp(Pexp_ident (mkrhs $1 1)) }
+  | REC
+      { mkexp(Pexp_ident (mkrhs (Lident "#rec") 1)) }
   | constant
       { mkexp(Pexp_constant $1) }
   | constr_longident %prec prec_constant_constructor
@@ -1671,7 +1691,8 @@ let_bindings:
 let_binding:
     LET ext_attributes rec_flag let_binding_body post_item_attributes
       { let (ext, attr) = $2 in
-        mklbs ext $3 (mklb true $4 (attr@$5)) }
+        let lbs = mklbs ext $3 in
+        addlb lbs (mklb true $4 (attr@$5)) }
 ;
 and_let_binding:
     AND attributes let_binding_body post_item_attributes
