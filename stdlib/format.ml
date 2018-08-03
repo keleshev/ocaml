@@ -98,7 +98,7 @@ and tbox = Pp_tbox of int list ref  (* Tabulation box *)
      (size is set when the size of the box is known, so that size of break
       hints are definitive). *)
 type pp_queue_elem = {
-  mutable elem_size : Size.t;
+  mutable size : Size.t;
   token : pp_token;
   length : int;
 }
@@ -283,9 +283,9 @@ let pp_force_break_line state =
 (* To skip a token, if the previous line has been broken. *)
 let pp_skip_token state =
   (* When calling pp_skip_token the queue cannot be empty. *)
-  let { elem_size; length; _ } = Queue.take state.pp_queue in
+  let { size; length; _ } = Queue.take state.pp_queue in
   state.pp_left_total <- state.pp_left_total - length;
-  state.pp_space_left <- state.pp_space_left + Size.to_int elem_size
+  state.pp_space_left <- state.pp_space_left + Size.to_int size
 
 
 (*
@@ -407,14 +407,14 @@ let format_pp_token state size = function
    Printing is delayed when the text waiting in the queue requires
    more room to format than exists on the current line. *)
 let rec advance_loop state =
-  let { elem_size; token; length } = Queue.peek state.pp_queue in
-  let is_size_unknown = Size.is_unknown elem_size in
+  let { size; token; length } = Queue.peek state.pp_queue in
+  let is_size_unknown = Size.is_unknown size in
   if not (is_size_unknown &&
            (state.pp_right_total - state.pp_left_total < state.pp_space_left))
   then begin
     ignore (Queue.take state.pp_queue);
     let token_size =
-      if is_size_unknown then pp_infinity else Size.to_int elem_size in
+      if is_size_unknown then pp_infinity else Size.to_int size in
     format_pp_token state token_size token;
     state.pp_left_total <- length + state.pp_left_total;
     (advance_loop [@tailcall]) state
@@ -431,7 +431,7 @@ let enqueue_advance state tok = pp_enqueue state tok; advance_left state
 
 (* Building pretty-printer queue elements. *)
 let make_queue_elem size tok len =
-  { elem_size = size; token = tok; length = len; }
+  { size; token = tok; length = len; }
 
 
 (* To enqueue strings. *)
@@ -465,8 +465,8 @@ let initialize_scan_stack stack =
 let set_size state ty =
   match Stack.top_opt state.pp_scan_stack with
   | None -> () (* scan_stack is never empty. *)
-  | Some (Scan_elem (left_total, ({ elem_size; token; _ } as queue_elem))) ->
-    let size = Size.to_int elem_size in
+  | Some (Scan_elem (left_total, ({ size; token; _ } as queue_elem))) ->
+    let size = Size.to_int size in
     (* test if scan stack contains any data that is not obsolete. *)
     if left_total < state.pp_left_total then
       initialize_scan_stack state.pp_scan_stack
@@ -474,12 +474,12 @@ let set_size state ty =
       match token with
       | Pp_break (_, _) | Pp_tbreak (_, _) ->
         if ty then begin
-          queue_elem.elem_size <- Size.of_int (state.pp_right_total + size);
+          queue_elem.size <- Size.of_int (state.pp_right_total + size);
           Stack.pop_opt state.pp_scan_stack |> ignore
         end
       | Pp_begin (_, _) ->
         if not ty then begin
-          queue_elem.elem_size <- Size.of_int (state.pp_right_total + size);
+          queue_elem.size <- Size.of_int (state.pp_right_total + size);
           Stack.pop_opt state.pp_scan_stack |> ignore
         end
       | Pp_text _ | Pp_stab | Pp_tbegin _ | Pp_tend | Pp_end
@@ -521,7 +521,7 @@ let pp_close_box state () =
     if state.pp_curr_depth < state.pp_max_boxes then
     begin
       pp_enqueue state
-        { elem_size = Size.zero; token = Pp_end; length = 0; };
+        { size = Size.zero; token = Pp_end; length = 0; };
       set_size state true; set_size state false
     end;
     state.pp_curr_depth <- state.pp_curr_depth - 1;
@@ -537,7 +537,7 @@ let pp_open_tag state tag_name =
   end;
   if state.pp_mark_tags then
     pp_enqueue state {
-      elem_size = Size.zero;
+      size = Size.zero;
       token = Pp_open_tag tag_name;
       length = 0;
     }
@@ -547,7 +547,7 @@ let pp_open_tag state tag_name =
 let pp_close_tag state () =
   if state.pp_mark_tags then
     pp_enqueue state {
-      elem_size = Size.zero;
+      size = Size.zero;
       token = Pp_close_tag;
       length = 0;
     };
