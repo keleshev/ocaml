@@ -338,17 +338,15 @@ let format_pp_token state size = function
     let insertion_point = state.pp_margin - state.pp_space_left in
     begin match Stack.top_opt state.pp_tbox_stack with
     | Some (Pp_tbox tabs) ->
-      let rec find n = function
-        | x :: l -> if x >= n then x else find n l
-        | [] -> raise_notrace Not_found in
       let tab =
         match !tabs with
-        | x :: _ ->
-          begin
-            try find insertion_point !tabs with
-            | Not_found -> x
-          end
-        | _ -> insertion_point in
+        | [] -> insertion_point
+        | first :: _ ->
+          let rec find = function
+            | head :: _ when head >= insertion_point -> head
+            | _ :: tail -> find tail
+            | [] -> first in
+          find !tabs in
       let offset = tab - insertion_point in
       if offset >= 0
       then break_same_line state (offset + n)
@@ -407,22 +405,19 @@ let format_pp_token state size = function
 
 (* Print if token size is known else printing is delayed.
    Printing is delayed when the text waiting in the queue requires
-   more room to format than exists on the current line.
-
-   Note: [advance_loop] must be tail recursive to prevent stack overflows. *)
+   more room to format than exists on the current line. *)
 let rec advance_loop state =
   let { elem_size; token; length } = Queue.peek state.pp_queue in
   let is_size_unknown = Size.is_unknown elem_size in
-  if not
-       (is_size_unknown &&
-        (state.pp_right_total - state.pp_left_total < state.pp_space_left))
+  if not (is_size_unknown &&
+           (state.pp_right_total - state.pp_left_total < state.pp_space_left))
   then begin
     ignore (Queue.take state.pp_queue);
     let token_size =
       if is_size_unknown then pp_infinity else Size.to_int elem_size in
     format_pp_token state token_size token;
     state.pp_left_total <- length + state.pp_left_total;
-    advance_loop state
+    (advance_loop [@tailcall]) state
   end
 
 
@@ -716,8 +711,7 @@ and pp_print_cut state () = pp_print_break state 0 0
 let pp_open_tbox state () =
   state.pp_curr_depth <- state.pp_curr_depth + 1;
   if state.pp_curr_depth < state.pp_max_boxes then
-    let elem =
-      make_queue_elem Size.zero (Pp_tbegin (Pp_tbox (ref []))) 0 in
+    let elem = make_queue_elem Size.zero (Pp_tbegin (Pp_tbox (ref []))) 0 in
     enqueue_advance state elem
 
 
@@ -747,8 +741,7 @@ let pp_print_tab state () = pp_print_tbreak state 0 0
 
 let pp_set_tab state () =
   if state.pp_curr_depth < state.pp_max_boxes then
-    let elem =
-      make_queue_elem Size.zero Pp_stab 0 in
+    let elem = make_queue_elem Size.zero Pp_stab 0 in
     enqueue_advance state elem
 
 
@@ -1287,7 +1280,7 @@ let ksprintf k (Format (fmt, _)) =
   make_printf k () End_of_acc fmt
 
 
-let sprintf fmt = ksprintf (fun s -> s) fmt
+let sprintf fmt = ksprintf id fmt
 
 let kasprintf k (Format (fmt, _)) =
   let b = pp_make_buffer () in
@@ -1298,7 +1291,7 @@ let kasprintf k (Format (fmt, _)) =
   make_printf k ppf End_of_acc fmt
 
 
-let asprintf fmt = kasprintf (fun s -> s) fmt
+let asprintf fmt = kasprintf id fmt
 
 (* Flushing standard formatters at end of execution. *)
 
