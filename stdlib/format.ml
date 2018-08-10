@@ -58,8 +58,9 @@ end
      (the box behaves as an horizontal or vertical box but break hints split
       the line if splitting would move to the left)
 *)
+
 type box_type = CamlinternalFormatBasics.block_type =
-  | Pp_hbox | Pp_vbox | Pp_hvbox | Pp_hovbox | Pp_box | Pp_fits
+  | Pp_hbox | Pp_vbox | Pp_hvbox | Pp_hovbox | Pp_box
 
 
 (* The pretty-printing tokens definition:
@@ -277,7 +278,7 @@ let pp_force_break_line state =
   | Some { box_type; width } ->
     if width > state.pp_space_left then
       match box_type with
-      | Pp_fits | Pp_hbox -> ()
+      | Pp_hbox -> ()
       | Pp_vbox | Pp_hvbox | Pp_hovbox | Pp_box -> break_line state width
 
 
@@ -313,8 +314,8 @@ let format_pp_token state size = function
     let box_type =
       match ty with
       | Pp_vbox -> Pp_vbox
-      | Pp_hbox | Pp_hvbox | Pp_hovbox | Pp_box | Pp_fits ->
-        if size > state.pp_space_left then ty else Pp_fits in
+      | Pp_hbox | Pp_hvbox | Pp_hovbox | Pp_box ->
+        if size > state.pp_space_left then ty else Pp_hbox in
     Stack.push { box_type; width } state.pp_format_stack
 
   | Pp_end ->
@@ -385,7 +386,6 @@ let format_pp_token state size = function
         then break_new_line state off width
         else break_same_line state n
       | Pp_hvbox -> break_new_line state off width
-      | Pp_fits -> break_same_line state n
       | Pp_vbox -> break_new_line state off width
       | Pp_hbox -> break_same_line state n
       end

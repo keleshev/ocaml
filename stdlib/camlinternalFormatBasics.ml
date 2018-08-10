@@ -231,7 +231,7 @@ type block_type =
   | Pp_box    (* Horizontal or Indent block: breaks lead to new line
                  only when necessary to print the content of the block, or
                  when it leads to a new indentation of the current line *)
-  | Pp_fits   (* Internal usage: when a block fits on a single line *)
+(*   | Pp_fits   (* Internal usage: when a block fits on a single line *) *)
 
 (* Formatting element used by the Format pretty-printer. *)
 type formatting_lit =

@@ -51,7 +51,7 @@ type ('a, 'b, 'c) custom_arity =
   | Custom_succ : ('a, 'b, 'c) custom_arity ->
     ('a, 'x -> 'b, 'x -> 'c) custom_arity
 
-type block_type = Pp_hbox | Pp_vbox | Pp_hvbox | Pp_hovbox | Pp_box | Pp_fits
+type block_type = Pp_hbox | Pp_vbox | Pp_hvbox | Pp_hovbox | Pp_box
 
 type formatting_lit =
   | Close_box
