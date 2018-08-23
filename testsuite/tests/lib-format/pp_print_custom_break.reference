@@ -12,3 +12,8 @@
   baz
 }
 {foo; bar; baz}
+function
+| Foo -> ()
+| Bar -> ()
+| Baz -> ()
+function Foo -> () | Bar -> () | Baz -> ()

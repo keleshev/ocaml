@@ -43,3 +43,22 @@ module Format_statements = struct
     printf "@[<v 0>%a@]@\n" (format_statements "v") example;
     printf "@[<h 0>%a@]@\n" (format_statements "h") example
 end
+
+
+module Format_function = struct
+  let rec format_function box_type ppf = function
+    | `Pattern s ->
+        fprintf ppf "%s -> ()" s
+    | `Function cases ->
+        let pp_sep ppf () = fprintf ppf "@ | " in
+        fprintf ppf "@[<%s>function%t%a@]"
+          box_type
+          (custom_break ~no_break:" " ~yes_break:("", "| "))
+          (list ~pp_sep (format_function box_type)) cases
+
+  let example = `Function [`Pattern "Foo"; `Pattern "Bar"; `Pattern "Baz"]
+
+  let () =
+    printf "@[<v 0>%a@]@\n" (format_function "v") example;
+    printf "@[<h 0>%a@]@\n" (format_function "h") example
+end
