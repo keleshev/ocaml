@@ -90,6 +90,10 @@ Working version
 - GPR#1986, MPR#6450: Add Set.disjoint
   (Nicolás Ojeda Bär, review by Gabriel Scherer)
 
+- GPR#XXXX: Add Format.pp_print_custom_break, a new more general kind of break
+  hint that can emit non-whitespace characters.
+  (Vladimir Keleshev, review by XXXX)
+
 ### Other libraries:
 
 - GPR#1061: Add ?follow parameter to Unix.link. This allows hardlinking
