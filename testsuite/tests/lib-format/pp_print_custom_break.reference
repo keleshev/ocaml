@@ -1,19 +1,52 @@
 [
-  [
-    123;
-    234;
-  ];
-  345;
+  Foo;
+  Baz;
+  Bar;
+  Qux;
+  Quux;
+  Quuz;
+  Corge;
+  Grault;
+  Garply;
 ]
-[[123; 234]; 345]
+[
+  Foo; Baz; Bar; Qux;
+  Quux; Quuz; Corge;
+  Grault; Garply;
+]
+[Foo; Baz; Bar; Qux; Quux; Quuz; Corge; Grault; Garply]
+
 {
-  foo
-  bar
-  baz
+  Foo
+  Baz
+  Bar
+  Qux
+  Quux
+  Quuz
+  Corge
+  Grault
+  Garply
 }
-{foo; bar; baz}
+{
+  Foo; Baz; Bar; Qux
+  Quux; Quuz; Corge
+  Grault; Garply
+}
+{Foo; Baz; Bar; Qux; Quux; Quuz; Corge; Grault; Garply}
+
 function
 | Foo -> ()
-| Bar -> ()
 | Baz -> ()
-function Foo -> () | Bar -> () | Baz -> ()
+| Bar -> ()
+| Qux -> ()
+| Quux -> ()
+| Quuz -> ()
+| Corge -> ()
+| Grault -> ()
+| Garply -> ()
+function Foo -> ()
+| Baz -> () | Bar -> ()
+| Qux -> () | Quux -> ()
+| Quuz -> () | Corge -> ()
+| Grault -> () | Garply -> ()
+function Foo -> () | Baz -> () | Bar -> () | Qux -> () | Quux -> () | Quuz -> () | Corge -> () | Grault -> () | Garply -> ()
