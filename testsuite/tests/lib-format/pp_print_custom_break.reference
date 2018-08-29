@@ -1,0 +1,50 @@
+[
+  Foo;
+  Baz;
+  Bar;
+  Qux;
+  Quux;
+  Quuz;
+  Corge;
+  Grault;
+  Garply;
+]
+[
+  Foo; Baz; Bar; Qux; Quux;
+  Quuz; Corge; Grault; Garply;
+]
+[Foo; Baz; Bar; Qux; Quux; Quuz; Corge; Grault; Garply]
+
+{
+  Foo
+  Baz
+  Bar
+  Qux
+  Quux
+  Quuz
+  Corge
+  Grault
+  Garply
+}
+{
+  Foo; Baz; Bar; Qux; Quux
+  Quuz; Corge; Grault; Garply
+}
+{Foo; Baz; Bar; Qux; Quux; Quuz; Corge; Grault; Garply}
+
+function
+| Foo -> ()
+| Baz -> ()
+| Bar -> ()
+| Qux -> ()
+| Quux -> ()
+| Quuz -> ()
+| Corge -> ()
+| Grault -> ()
+| Garply -> ()
+function Foo -> ()
+| Baz -> () | Bar -> ()
+| Qux -> () | Quux -> ()
+| Quuz -> () | Corge -> ()
+| Grault -> () | Garply -> ()
+function Foo -> () | Baz -> () | Bar -> () | Qux -> () | Quux -> () | Quuz -> () | Corge -> () | Grault -> () | Garply -> ()

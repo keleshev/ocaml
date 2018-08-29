@@ -74,6 +74,10 @@ stdlib__format.cmo : stdlib__string.cmi stdlib.cmi stdlib__stack.cmi stdlib__que
 stdlib__format.cmx : stdlib__string.cmx stdlib.cmx stdlib__stack.cmx stdlib__queue.cmx stdlib__list.cmx \
     camlinternalFormatBasics.cmx camlinternalFormat.cmx stdlib__buffer.cmx stdlib__format.cmi
 stdlib__format.cmi : stdlib.cmi stdlib__buffer.cmi
+stdlib__format.old.cmo : stdlib__string.cmi stdlib.cmi stdlib__stack.cmi stdlib__queue.cmi stdlib__list.cmi \
+    camlinternalFormatBasics.cmi camlinternalFormat.cmi stdlib__buffer.cmi
+stdlib__format.old.cmx : stdlib__string.cmx stdlib.cmx stdlib__stack.cmx stdlib__queue.cmx stdlib__list.cmx \
+    camlinternalFormatBasics.cmx camlinternalFormat.cmx stdlib__buffer.cmx
 stdlib__gc.cmo : stdlib__sys.cmi stdlib__string.cmi stdlib__printf.cmi stdlib__gc.cmi
 stdlib__gc.cmx : stdlib__sys.cmx stdlib__string.cmx stdlib__printf.cmx stdlib__gc.cmi
 stdlib__gc.cmi :
@@ -256,6 +260,10 @@ stdlib__format.cmo : stdlib__string.cmi stdlib.cmi stdlib__stack.cmi stdlib__que
     camlinternalFormatBasics.cmi camlinternalFormat.cmi stdlib__buffer.cmi stdlib__format.cmi
 stdlib__format.p.cmx : stdlib__string.cmx stdlib.cmx stdlib__stack.cmx stdlib__queue.cmx stdlib__list.cmx \
     camlinternalFormatBasics.cmx camlinternalFormat.cmx stdlib__buffer.cmx stdlib__format.cmi
+stdlib__format.old.cmo : stdlib__string.cmi stdlib.cmi stdlib__stack.cmi stdlib__queue.cmi stdlib__list.cmi \
+    camlinternalFormatBasics.cmi camlinternalFormat.cmi stdlib__buffer.cmi
+stdlib__format.old.p.cmx : stdlib__string.cmx stdlib.cmx stdlib__stack.cmx stdlib__queue.cmx stdlib__list.cmx \
+    camlinternalFormatBasics.cmx camlinternalFormat.cmx stdlib__buffer.cmx
 stdlib__gc.cmo : stdlib__sys.cmi stdlib__string.cmi stdlib__printf.cmi stdlib__gc.cmi
 stdlib__gc.p.cmx : stdlib__sys.cmx stdlib__string.cmx stdlib__printf.cmx stdlib__gc.cmi
 stdlib__genlex.cmo : stdlib__string.cmi stdlib__stream.cmi stdlib__list.cmi stdlib__hashtbl.cmi stdlib__char.cmi stdlib__bytes.cmi \

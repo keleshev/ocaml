@@ -288,6 +288,44 @@ val print_break : int -> int -> unit
   the current indentation.
 *)
 
+val pp_print_custom_break :
+  formatter ->
+  no_break:(string * int * string) ->
+  yes_break:(string * int * string) ->
+  unit
+(** [pp_print_custom_break ppf ~no_break:(s1, n, s2) ~yes_break:(s3, m, s4)]
+   emits a custom break hint: the pretty-printer may split the line at this
+   point.
+
+   If it does not split the line, then the [s1] is emitted, then [n] spaces,
+   then [s2].
+
+   If it splits the line, then it emits the [s3] string,
+   then an indent (according to the box rules), then an offset of [m] spaces,
+   then the [s4] string.
+
+   The custom break is useful if you want to change which visible
+   (non-whitespace) characters are printed in case of break or no break.
+   For example, when printing an array {[ [a; b; c] ]}, you might want to add
+   a trailing semicolon when it is printed vertically:
+
+   {[
+[
+  a;
+  b;
+  c;
+]
+   ]}
+
+   You can do this as follows:
+   {[
+printf "@[<v 0>[@;<0 2>@[<v 0>a;@,b;@,c@]%t]@]@\n"
+  (pp_print_custom_break ~no_break:("", 0, "") ~yes_break:(";", 0, ""))
+   ]}
+
+  @since 4.08.0
+*)
+
 val pp_force_newline : formatter -> unit -> unit
 val force_newline : unit -> unit
 (** Force a new line in the current pretty-printing box.

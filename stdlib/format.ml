@@ -67,7 +67,10 @@ type box_type = CamlinternalFormatBasics.block_type =
    elements that drive indentation and line splitting. *)
 type pp_token =
   | Pp_text of string          (* normal text *)
-  | Pp_break of int * int      (* complete break *)
+  | Pp_break of {              (* complete break *)
+      no_break: string * int * string;  (* line is not split *)
+      yes_break: string * int * string; (* line is split *)
+    }
   | Pp_tbreak of int * int     (* go to next tabulation *)
   | Pp_stab                    (* set a tabulation *)
   | Pp_begin of int * box_type (* beginning of a box *)
@@ -247,8 +250,18 @@ and pp_output_newline state = state.pp_out_newline ()
 and pp_output_spaces state n = state.pp_out_spaces n
 and pp_output_indent state n = state.pp_out_indent n
 
+(* Format a textual token *)
+let format_pp_text state size text =
+    state.pp_space_left <- state.pp_space_left - size;
+    pp_output_string state text;
+    state.pp_is_new_line <- false
+
+(* Format a string by its length *)
+let format_string state s = format_pp_text state (String.length s) s
+
 (* To format a break, indenting a new line. *)
-let break_new_line state offset width =
+let break_new_line state (before, offset, after) width =
+  format_string state before;
   pp_output_newline state;
   state.pp_is_new_line <- true;
   let indent = state.pp_margin - width + offset in
@@ -256,16 +269,19 @@ let break_new_line state offset width =
   let real_indent = min state.pp_max_indent indent in
   state.pp_current_indent <- real_indent;
   state.pp_space_left <- state.pp_margin - state.pp_current_indent;
-  pp_output_indent state state.pp_current_indent
+  pp_output_indent state state.pp_current_indent;
+  format_string state after
 
 
 (* To force a line break inside a box: no offset is added. *)
-let break_line state width = break_new_line state 0 width
+let break_line state width = break_new_line state ("", 0, "") width
 
 (* To format a break that fits on the current line. *)
-let break_same_line state width =
+let break_same_line state (before, width, after) =
+  format_string state before;
   state.pp_space_left <- state.pp_space_left - width;
-  pp_output_spaces state width
+  pp_output_spaces state width;
+  format_string state after
 
 
 (* To indent no more than pp_max_indent, if one tries to open a box
@@ -300,9 +316,7 @@ let pp_skip_token state =
 let format_pp_token state size = function
 
   | Pp_text s ->
-    state.pp_space_left <- state.pp_space_left - size;
-    pp_output_string state s;
-    state.pp_is_new_line <- false
+    format_pp_text state size s
 
   | Pp_begin (off, ty) ->
     let insertion_point = state.pp_margin - state.pp_space_left in
@@ -352,8 +366,8 @@ let format_pp_token state size = function
           find !tabs in
       let offset = tab - insertion_point in
       if offset >= 0
-      then break_same_line state (offset + n)
-      else break_new_line state (tab + off) state.pp_margin
+      then break_same_line state ("", offset + n, "")
+      else break_new_line state ("", tab + off, "") state.pp_margin
     end
 
   | Pp_newline ->
@@ -366,28 +380,28 @@ let format_pp_token state size = function
     if state.pp_current_indent != state.pp_margin - state.pp_space_left
     then pp_skip_token state
 
-  | Pp_break (n, off) ->
+  | Pp_break { no_break; yes_break = _, off, _ as yes_break; } ->
     begin match Stack.top_opt state.pp_format_stack with
     | None -> () (* No open box. *)
     | Some { box_type; width } ->
       begin match box_type with
       | Pp_hovbox ->
         if size > state.pp_space_left
-        then break_new_line state off width
-        else break_same_line state n
+        then break_new_line state yes_break width
+        else break_same_line state no_break
       | Pp_box ->
         (* Have the line just been broken here ? *)
-        if state.pp_is_new_line then break_same_line state n else
+        if state.pp_is_new_line then break_same_line state no_break else
         if size > state.pp_space_left
-         then break_new_line state off width else
+         then break_new_line state yes_break width else
         (* break the line here leads to new indentation ? *)
         if state.pp_current_indent > state.pp_margin - width + off
-        then break_new_line state off width
-        else break_same_line state n
-      | Pp_hvbox -> break_new_line state off width
-      | Pp_fits -> break_same_line state n
-      | Pp_vbox -> break_new_line state off width
-      | Pp_hbox -> break_same_line state n
+        then break_new_line state yes_break width
+        else break_same_line state no_break
+      | Pp_hvbox -> break_new_line state yes_break width
+      | Pp_fits -> break_same_line state no_break
+      | Pp_vbox -> break_new_line state yes_break width
+      | Pp_hbox -> break_same_line state no_break
       end
     end
 
@@ -463,7 +477,7 @@ let set_size state ty =
       initialize_scan_stack state.pp_scan_stack
     else
       match queue_elem.token with
-      | Pp_break (_, _) | Pp_tbreak (_, _) ->
+      | Pp_break _ | Pp_tbreak _ ->
         if ty then begin
           queue_elem.size <- Size.of_int (state.pp_right_total + size);
           Stack.pop_opt state.pp_scan_stack |> ignore
@@ -666,15 +680,22 @@ let pp_print_if_newline state () =
       { size = Size.zero; token = Pp_if_newline; length = 0 }
 
 
+(* Generalized break hint that allows to print strings before/after
+   same-line offset (width) or new-line offset *)
+let pp_print_custom_break state ~no_break:(_, width, _ as no_break) ~yes_break =
+  if state.pp_curr_depth < state.pp_max_boxes then
+    let size = Size.of_int (- state.pp_right_total) in
+    let token = Pp_break { no_break; yes_break } in
+    let elem = { size; token; length = width } in
+    scan_push state true elem
+
 (* Printing break hints:
    A break hint indicates where a box may be broken.
    If line is broken then offset is added to the indentation of the current
    box else (the value of) width blanks are printed. *)
 let pp_print_break state width offset =
-  if state.pp_curr_depth < state.pp_max_boxes then
-    let size = Size.of_int (- state.pp_right_total) in
-    let elem = { size; token = Pp_break (width, offset); length = width } in
-    scan_push state true elem
+  pp_print_custom_break state
+    ~no_break:("", width, "") ~yes_break:("", offset, "")
 
 
 (* Print a space :
