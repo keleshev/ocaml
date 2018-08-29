@@ -102,6 +102,10 @@ Working version
   for consistency with OSX & Linux. Previously was located at `lib`.
   (Bryan Phelps, Jordan Walke, review by David Allsopp)
 
+- GPR#2002: Add Format.pp_print_custom_break, a new more general kind of break
+  hint that can emit non-whitespace characters.
+  (Vladimir Keleshev, review by Josh Berdine, Gabriel Radanne, Pierre Weis)
+
 ### Other libraries:
 
 - GPR#1061: Add ?follow parameter to Unix.link. This allows hardlinking
