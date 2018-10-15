@@ -68,8 +68,8 @@ type box_type = CamlinternalFormatBasics.block_type =
 type pp_token =
   | Pp_text of string          (* normal text *)
   | Pp_break of {              (* complete break *)
-      no_break: string * int * string;  (* line is not split *)
-      yes_break: string * int * string; (* line is split *)
+      fits: string * int * string;  (* line is not split *)
+      breaks: string * int * string; (* line is split *)
     }
   | Pp_tbreak of int * int     (* go to next tabulation *)
   | Pp_stab                    (* set a tabulation *)
@@ -254,7 +254,7 @@ and pp_output_indent state n = state.pp_out_indent n
 let format_pp_text state size text =
     state.pp_space_left <- state.pp_space_left - size;
     pp_output_string state text;
-    state.pp_is_new_line <- false
+    if text <> "" then state.pp_is_new_line <- false
 
 (* Format a string by its length *)
 let format_string state s = format_pp_text state (String.length s) s
@@ -380,28 +380,28 @@ let format_pp_token state size = function
     if state.pp_current_indent != state.pp_margin - state.pp_space_left
     then pp_skip_token state
 
-  | Pp_break { no_break; yes_break = _, off, _ as yes_break; } ->
+  | Pp_break { fits; breaks = before, off, _ as breaks } ->
     begin match Stack.top_opt state.pp_format_stack with
     | None -> () (* No open box. *)
     | Some { box_type; width } ->
       begin match box_type with
       | Pp_hovbox ->
-        if size > state.pp_space_left
-        then break_new_line state yes_break width
-        else break_same_line state no_break
+        if size + String.length before > state.pp_space_left
+        then break_new_line state breaks width
+        else break_same_line state fits
       | Pp_box ->
         (* Have the line just been broken here ? *)
-        if state.pp_is_new_line then break_same_line state no_break else
-        if size > state.pp_space_left
-         then break_new_line state yes_break width else
+        if state.pp_is_new_line then break_same_line state fits else
+        if size + String.length before > state.pp_space_left
+          then break_new_line state breaks width else
         (* break the line here leads to new indentation ? *)
         if state.pp_current_indent > state.pp_margin - width + off
-        then break_new_line state yes_break width
-        else break_same_line state no_break
-      | Pp_hvbox -> break_new_line state yes_break width
-      | Pp_fits -> break_same_line state no_break
-      | Pp_vbox -> break_new_line state yes_break width
-      | Pp_hbox -> break_same_line state no_break
+        then break_new_line state breaks width
+        else break_same_line state fits
+      | Pp_hvbox -> break_new_line state breaks width
+      | Pp_fits -> break_same_line state fits
+      | Pp_vbox -> break_new_line state breaks width
+      | Pp_hbox -> break_same_line state fits
       end
     end
 
@@ -682,11 +682,12 @@ let pp_print_if_newline state () =
 
 (* Generalized break hint that allows to print strings before/after
    same-line offset (width) or new-line offset *)
-let pp_print_custom_break state ~no_break:(_, width, _ as no_break) ~yes_break =
+let pp_print_custom_break state ~fits:(before, width, after as fits) ~breaks =
   if state.pp_curr_depth < state.pp_max_boxes then
     let size = Size.of_int (- state.pp_right_total) in
-    let token = Pp_break { no_break; yes_break } in
-    let elem = { size; token; length = width } in
+    let token = Pp_break { fits; breaks } in
+    let length = String.length before + width + String.length after in
+    let elem = { size; token; length } in
     scan_push state true elem
 
 (* Printing break hints:
@@ -695,7 +696,7 @@ let pp_print_custom_break state ~no_break:(_, width, _ as no_break) ~yes_break =
    box else (the value of) width blanks are printed. *)
 let pp_print_break state width offset =
   pp_print_custom_break state
-    ~no_break:("", width, "") ~yes_break:("", offset, "")
+    ~fits:("", width, "") ~breaks:("", offset, "")
 
 
 (* Print a space :

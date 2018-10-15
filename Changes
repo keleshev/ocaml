@@ -104,7 +104,7 @@ Working version
 
 - GPR#2002: Add Format.pp_print_custom_break, a new more general kind of break
   hint that can emit non-whitespace characters.
-  (Vladimir Keleshev, review by Josh Berdine, Gabriel Radanne, Pierre Weis)
+  (Vladimir Keleshev and Pierre Weis, review by Josh Berdine, Gabriel Radanne)
 
 ### Other libraries:
 

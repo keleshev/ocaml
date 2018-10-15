@@ -290,10 +290,10 @@ val print_break : int -> int -> unit
 
 val pp_print_custom_break :
   formatter ->
-  no_break:(string * int * string) ->
-  yes_break:(string * int * string) ->
+  fits:(string * int * string) ->
+  breaks:(string * int * string) ->
   unit
-(** [pp_print_custom_break ppf ~no_break:(s1, n, s2) ~yes_break:(s3, m, s4)]
+(** [pp_print_custom_break ppf ~fits:(s1, n, s2) ~breaks:(s3, m, s4)]
    emits a custom break hint: the pretty-printer may split the line at this
    point.
 
@@ -303,6 +303,11 @@ val pp_print_custom_break :
    If it splits the line, then it emits the [s3] string,
    then an indent (according to the box rules), then an offset of [m] spaces,
    then the [s4] string.
+
+   While [n] and [m] are handled by [formatter_out_functions.out_indent],
+   the strings will be handled by [formatter_out_functions.out_string].
+   This allows for a custom formatter that handles indentation distinctly,
+   for example, outputs [<br/>] tags or [&nbsp;] entities.
 
    The custom break is useful if you want to change which visible
    (non-whitespace) characters are printed in case of break or no break.
@@ -320,7 +325,7 @@ val pp_print_custom_break :
    You can do this as follows:
    {[
 printf "@[<v 0>[@;<0 2>@[<v 0>a;@,b;@,c@]%t]@]@\n"
-  (pp_print_custom_break ~no_break:("", 0, "") ~yes_break:(";", 0, ""))
+  (pp_print_custom_break ~fits:("", 0, "") ~breaks:(";", 0, ""))
    ]}
 
   @since 4.08.0
