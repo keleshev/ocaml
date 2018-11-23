@@ -169,6 +169,10 @@ Working version
 - GPR#2159, MPR#7874: annotate {String,Bytes}.equal as being [@@noalloc].
   (Pierre-Marie Pédrot, review by Nicolás Ojeda Bär)
 
+- GPR#2002: Add Format.pp_print_custom_break, a new more general kind of break
+  hint that can emit non-whitespace characters.
+  (Vladimir Keleshev and Pierre Weis, review by Josh Berdine, Gabriel Radanne)
+
 ### Other libraries:
 
 - GPR#1061: Add ?follow parameter to Unix.link. This allows hardlinking
