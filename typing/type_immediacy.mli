@@ -2,11 +2,9 @@
 (*                                                                        *)
 (*                                 OCaml                                  *)
 (*                                                                        *)
-(*   Gabriel Scherer, projet Parsifal, INRIA Saclay                       *)
-(*   Rodolphe Lepigre, projet Deducteam, INRIA Saclay                     *)
+(*                   Jeremie Dimino, Jane Street Europe                   *)
 (*                                                                        *)
-(*   Copyright 2018 Institut National de Recherche en Informatique et     *)
-(*     en Automatique.                                                    *)
+(*   Copyright 2019 Jane Street Group LLC                                 *)
 (*                                                                        *)
 (*   All rights reserved.  This file is distributed under the terms of    *)
 (*   the GNU Lesser General Public License version 2.1, with the          *)
@@ -14,18 +12,23 @@
 (*                                                                        *)
 (**************************************************************************)
 
-type error =
-  | Bad_immediacy_attribute of {
-      written_by_user : Type_immediacy.t;
-      real : Type_immediacy.t;
-    }
-exception Error of Location.t * error
+(** Immediacy status of a type *)
 
-val compute_decl : Env.t -> Types.type_declaration -> Type_immediacy.t
+type t =
+  | Unknown
+  | Always
+  | Always_on_64bits
 
-val property : (Type_immediacy.t, unit) Typedecl_properties.property
+(** [more_often_immediate a b] returns [true] iff [a] is immediate in
+    as many or more cases than [b]. For instance, [Always] is more
+    often immediate than [Always_on_64bits]. *)
+val more_often_immediate : t -> t -> bool
 
-val update_decls :
-  Env.t ->
-  (Ident.t * Typedecl_properties.decl) list ->
-  (Ident.t * Typedecl_properties.decl) list
+(** Return a description of the immediacy status of a type, such as
+    "always an immediate type" or "only an immediate type on 64 bit
+    platforms". *)
+val describe : t -> string
+
+(** Return the immediateness of a type as indicated by the user via
+    attributes *)
+val of_attributes : Parsetree.attributes -> t
