@@ -349,6 +349,12 @@ val print_if_newline : unit -> unit
   command.
 *)
 
+val pp_print_string_if_newline : formatter -> string -> unit
+val pp_print_break_or_string_if_newline :
+  formatter -> int -> int -> string -> unit
+val pp_print_fits_or_breaks :
+  formatter -> string -> int -> int -> string -> unit
+
 val print_string_if_newline : string -> unit
 (** Similar to [print_if_newline] followed by [print_string] except that the
   length of the string does not contribute to the width of the enclosing
@@ -1058,81 +1064,7 @@ val formatter_of_symbolic_output_buffer : symbolic_output_buffer -> formatter
 (** [formatter_of_symbolic_output_buffer sob] returns a symbolic formatter
   that outputs to [symbolic_output_buffer] [sob].
 
-<<<<<<< HEAD
   @since 4.06.0
-=======
-  @since 4.04.0
-*)
-
-(** {6 Basic functions for formatters} *)
-
-val pp_open_hbox : formatter -> unit -> unit
-val pp_open_vbox : formatter -> int -> unit
-val pp_open_hvbox : formatter -> int -> unit
-val pp_open_hovbox : formatter -> int -> unit
-val pp_open_box : formatter -> int -> unit
-val pp_close_box : formatter -> unit -> unit
-val pp_open_tag : formatter -> string -> unit
-val pp_close_tag : formatter -> unit -> unit
-val pp_print_string : formatter -> string -> unit
-val pp_print_as : formatter -> int -> string -> unit
-val pp_print_int : formatter -> int -> unit
-val pp_print_float : formatter -> float -> unit
-val pp_print_char : formatter -> char -> unit
-val pp_print_bool : formatter -> bool -> unit
-val pp_print_break : formatter -> int -> int -> unit
-val pp_print_cut : formatter -> unit -> unit
-val pp_print_space : formatter -> unit -> unit
-val pp_force_newline : formatter -> unit -> unit
-val pp_print_flush : formatter -> unit -> unit
-val pp_print_newline : formatter -> unit -> unit
-val pp_print_if_newline : formatter -> unit -> unit
-val pp_print_string_if_newline : formatter -> string -> unit
-val pp_print_break_or_string_if_newline :
-  formatter -> int -> int -> string -> unit
-val pp_print_fits_or_breaks :
-  formatter -> string -> int -> int -> string -> unit
-val pp_set_tags : formatter -> bool -> unit
-val pp_set_print_tags : formatter -> bool -> unit
-val pp_set_mark_tags : formatter -> bool -> unit
-val pp_get_print_tags : formatter -> unit -> bool
-val pp_get_mark_tags : formatter -> unit -> bool
-val pp_set_margin : formatter -> int -> unit
-val pp_get_margin : formatter -> unit -> int
-val pp_set_max_indent : formatter -> int -> unit
-val pp_get_max_indent : formatter -> unit -> int
-val pp_set_max_boxes : formatter -> int -> unit
-val pp_get_max_boxes : formatter -> unit -> int
-val pp_over_max_boxes : formatter -> unit -> bool
-val pp_set_ellipsis_text : formatter -> string -> unit
-val pp_get_ellipsis_text : formatter -> unit -> string
-val pp_set_formatter_out_channel :
-  formatter -> Pervasives.out_channel -> unit
-
-val pp_set_formatter_output_functions :
-  formatter -> (string -> int -> int -> unit) -> (unit -> unit) -> unit
-
-val pp_get_formatter_output_functions :
-  formatter -> unit -> (string -> int -> int -> unit) * (unit -> unit)
-
-val pp_set_formatter_tag_functions :
-  formatter -> formatter_tag_functions -> unit
-
-val pp_get_formatter_tag_functions :
-  formatter -> unit -> formatter_tag_functions
-
-val pp_set_formatter_out_functions :
-  formatter -> formatter_out_functions -> unit
-(** @since 4.01.0 *)
-
-val pp_get_formatter_out_functions :
-  formatter -> unit -> formatter_out_functions
-
-(** These functions are the basic ones: usual functions
-  operating on the standard formatter are defined via partial
-  evaluation of these primitives. For instance,
-  {!print_string} is equal to {!pp_print_string} {!std_formatter}.
->>>>>>> Format: Add functions for printing conditionally on line breaks
 *)
 
 (** {1 Convenience formatting functions.} *)
