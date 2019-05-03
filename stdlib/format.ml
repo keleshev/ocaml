@@ -433,41 +433,44 @@ let format_pp_token state size = function
       state.pp_is_new_line <- false
     end
     else
-    begin match state.pp_format_stack with
-    | Format_elem (ty, width) :: _ ->
-      begin match ty with
+    begin match Stack.top_opt state.pp_format_stack with
+    | None -> () (* No open box. *)
+    | Some { box_type; width } ->
+      let w x = ("", x, "") in
+      begin match box_type with
       | Pp_hovbox ->
         if size > state.pp_space_left
-        then break_new_line state off width
-        else break_same_line state n
+        then break_new_line state (w off) width
+        else break_same_line state (w n)
       | Pp_box ->
         (* Have the line just been broken here ? *)
-        if state.pp_is_new_line then break_same_line state n else
+        if state.pp_is_new_line then break_same_line state (w n) else
         if size > state.pp_space_left
-         then break_new_line state off width else
+         then break_new_line state (w off) width else
         (* break the line here leads to new indentation ? *)
         if state.pp_current_indent > state.pp_margin - width + off
-        then break_new_line state off width
-        else break_same_line state n
-      | Pp_hvbox -> break_new_line state off width
-      | Pp_fits -> break_same_line state n
-      | Pp_vbox -> break_new_line state off width
-      | Pp_hbox -> break_same_line state n
+        then break_new_line state (w off) width
+        else break_same_line state (w n)
+      | Pp_hvbox -> break_new_line state (w off) width
+      | Pp_fits -> break_same_line state (w n)
+      | Pp_vbox -> break_new_line state (w off) width
+      | Pp_hbox -> break_same_line state (w n)
       end
-    | [] -> () (* No open box. *)
     end
 
   | Pp_fits_or_breaks (fits, n, off, breaks) ->
-    begin match state.pp_format_stack with
-    | Format_elem (ty, width) :: _ ->
+    begin match Stack.top_opt state.pp_format_stack with
+    | None -> () (* No open box. *)
+    | Some { box_type= ty; width } ->
+        let w x = ("", x, "") in
         let text =
           if ty = Pp_fits then
             fits
           else begin
             if off >= 0 then begin
               if size + String.length breaks >= state.pp_space_left
-              then break_new_line state off width
-              else break_same_line state n
+              then break_new_line state (w off) width
+              else break_same_line state (w n)
             end;
             breaks
           end in
@@ -476,7 +479,6 @@ let format_pp_token state size = function
           pp_output_string state text;
           state.pp_is_new_line <- false
         end
-    | [] -> () (* No open box. *)
     end
 
    | Pp_open_tag tag_name ->
@@ -772,9 +774,9 @@ let pp_print_custom_break state ~fits ~breaks =
 (* To format a string, only in case the line has just been broken. *)
 let pp_print_string_if_newline state s =
   if state.pp_curr_depth < state.pp_max_boxes then
-    let len = String.length s in
-    let size = size_of_int 0 in
-    enqueue_advance state (make_queue_elem size (Pp_string_if_newline s) len)
+    let length = String.length s in
+    enqueue_advance state
+      { size = Size.zero; token= Pp_string_if_newline s; length }
 
 
 (* Printing break hints:
@@ -790,24 +792,19 @@ let pp_print_break state width offset =
    string, in case the line has just been broken. *)
 let pp_print_break_or_string_if_newline state width offset s =
   if state.pp_curr_depth < state.pp_max_boxes then
-    let elem =
-      make_queue_elem
-        (size_of_int (- state.pp_right_total))
-        (Pp_break_or_string_if_newline (width, offset, s))
-        width in
-    scan_push state true elem
+    let size = Size.of_int (- state.pp_right_total) in
+    let token = Pp_break_or_string_if_newline (width, offset, s) in
+    scan_push state true { size; token; length= width }
 
 
 (* To format a string if the enclosing box fits, and otherwise to format a
    break and a string. *)
 let pp_print_fits_or_breaks state fits nspaces offset breaks =
   if state.pp_curr_depth < state.pp_max_boxes then
-    let elem =
-      make_queue_elem
-        (size_of_int (- state.pp_right_total))
-        (Pp_fits_or_breaks (fits, nspaces, offset, breaks))
-        (String.length fits) in
-    scan_push state true elem
+    let size = Size.of_int (- state.pp_right_total) in
+    let token = Pp_fits_or_breaks (fits, nspaces, offset, breaks) in
+    let length = String.length fits in
+    scan_push state true { size; token; length }
 
 
 (* Print a space :
