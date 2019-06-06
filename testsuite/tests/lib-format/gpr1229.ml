@@ -1,3 +1,10 @@
+(* TEST *)
+
+(*
+A test file for Format.print_string_if_newline,
+print_break_or_string_if_newline and print_fits_or_breaks.
+*)
+
 let set_margin n =
   Format.set_margin n;
   Format.set_max_indent (n - 1)
