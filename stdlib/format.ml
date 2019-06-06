@@ -322,6 +322,33 @@ let pp_skip_token state =
 
 *)
 
+let format_pp_break state size fits breaks =
+  let before, off, _ = breaks in
+  begin match Stack.top_opt state.pp_format_stack with
+  | None -> () (* No open box. *)
+  | Some { box_type; width } ->
+    begin match box_type with
+    | Pp_hovbox ->
+      if size + String.length before > state.pp_space_left
+      then break_new_line state breaks width
+      else break_same_line state fits
+    | Pp_box ->
+      (* Have the line just been broken here ? *)
+      if state.pp_is_new_line then break_same_line state fits else
+      if size + String.length before > state.pp_space_left
+      then break_new_line state breaks width else
+      (* break the line here leads to new indentation ? *)
+      if state.pp_current_indent > state.pp_margin - width + off
+      then break_new_line state breaks width
+      else break_same_line state fits
+    | Pp_hvbox -> break_new_line state breaks width
+    | Pp_fits -> break_same_line state fits
+    | Pp_vbox -> break_new_line state breaks width
+    | Pp_hbox -> break_same_line state fits
+    end
+  end
+
+
 (* Formatting a token with a given size. *)
 let format_pp_token state size = function
 
@@ -395,62 +422,14 @@ let format_pp_token state size = function
     then format_pp_text state size s
 
   | Pp_break { fits; breaks } ->
-    let before, off, _ = breaks in
-    begin match Stack.top_opt state.pp_format_stack with
-    | None -> () (* No open box. *)
-    | Some { box_type; width } ->
-      begin match box_type with
-      | Pp_hovbox ->
-        if size + String.length before > state.pp_space_left
-        then break_new_line state breaks width
-        else break_same_line state fits
-      | Pp_box ->
-        (* Have the line just been broken here ? *)
-        if state.pp_is_new_line then break_same_line state fits else
-        if size + String.length before > state.pp_space_left
-          then break_new_line state breaks width else
-        (* break the line here leads to new indentation ? *)
-        if state.pp_current_indent > state.pp_margin - width + off
-        then break_new_line state breaks width
-        else break_same_line state fits
-      | Pp_hvbox -> break_new_line state breaks width
-      | Pp_fits -> break_same_line state fits
-      | Pp_vbox -> break_new_line state breaks width
-      | Pp_hbox -> break_same_line state fits
-      end
-    end
+    format_pp_break state size fits breaks
 
   | Pp_break_or_string_if_newline (n, off, s) ->
-    if state.pp_is_new_line then begin
-      state.pp_space_left <- state.pp_space_left - (String.length s);
-      pp_output_string state s;
-      state.pp_is_new_line <- false
-    end
+    if state.pp_is_new_line
+    then format_pp_text state size s
     else
-    begin match Stack.top_opt state.pp_format_stack with
-    | None -> () (* No open box. *)
-    | Some { box_type; width } ->
-      let w x = ("", x, "") in
-      begin match box_type with
-      | Pp_hovbox ->
-        if size > state.pp_space_left
-        then break_new_line state (w off) width
-        else break_same_line state (w n)
-      | Pp_box ->
-        (* Have the line just been broken here ? *)
-        if state.pp_is_new_line then break_same_line state (w n) else
-        if size > state.pp_space_left
-         then break_new_line state (w off) width else
-        (* break the line here leads to new indentation ? *)
-        if state.pp_current_indent > state.pp_margin - width + off
-        then break_new_line state (w off) width
-        else break_same_line state (w n)
-      | Pp_hvbox -> break_new_line state (w off) width
-      | Pp_fits -> break_same_line state (w n)
-      | Pp_vbox -> break_new_line state (w off) width
-      | Pp_hbox -> break_same_line state (w n)
-      end
-    end
+      let fits = ("", n, "") and breaks = ("", off, "") in
+      format_pp_break state size fits breaks
 
    | Pp_open_tag tag_name ->
      let marker = state.pp_mark_open_tag tag_name in
