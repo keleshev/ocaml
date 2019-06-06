@@ -1179,7 +1179,8 @@ and print_flush = pp_print_flush std_formatter
 and print_newline = pp_print_newline std_formatter
 and print_if_newline = pp_print_if_newline std_formatter
 and print_string_if_newline = pp_print_string_if_newline std_formatter
-and print_break_or_string_if_newline = pp_print_break_or_string_if_newline std_formatter
+and print_break_or_string_if_newline =
+  pp_print_break_or_string_if_newline std_formatter
 and print_fits_or_breaks = pp_print_fits_or_breaks std_formatter
 
 and open_tbox = pp_open_tbox std_formatter
