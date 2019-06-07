@@ -356,7 +356,7 @@ let format_pp_break state size fits breaks =
 let format_pp_token state size = function
 
   | Pp_text s ->
-    format_string state s
+    format_pp_text state size s
 
   | Pp_begin (off, ty) ->
     let insertion_point = state.pp_margin - state.pp_space_left in
