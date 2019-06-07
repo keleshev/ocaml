@@ -83,12 +83,9 @@ type pp_token =
   | Pp_newline                 (* to force a newline inside a box *)
   | Pp_if_newline              (* to do something only if this very
                                   line has been broken *)
-  | Pp_string_if_newline of string
-                               (* print a string only if this very
-                                  line has been broken *)
-  | Pp_break_or_string_if_newline of fits_or_breaks * string
-                               (* print a break if this very line has not
-                                  been broken, otherwise print a string *)
+  | Pp_break_or_string_if_newline of fits_or_breaks option * string
+                               (* print an optional break if this very line has
+                                  not been broken, otherwise print a string *)
   | Pp_fits_or_breaks of string * int * int * string
                                (* print a string if the enclosing box fits,
                                   otherwise print a break and a string *)
@@ -423,17 +420,17 @@ let format_pp_token state size = function
     if state.pp_current_indent != state.pp_margin - state.pp_space_left
     then pp_skip_token state
 
-  | Pp_string_if_newline s ->
-    if state.pp_is_new_line
-    then format_pp_text state (String.length s) s
-
   | Pp_break { fits; breaks } ->
     format_pp_break state size fits breaks
 
-  | Pp_break_or_string_if_newline ({ fits; breaks }, s) ->
+  | Pp_break_or_string_if_newline (break_opt, s) ->
     if state.pp_is_new_line
-    then format_pp_text state size s
-    else format_pp_break state size fits breaks
+    then format_pp_text state (String.length s) s
+    else
+      begin match break_opt with
+      | Some { fits; breaks } -> format_pp_break state size fits breaks
+      | None -> ()
+      end
 
   | Pp_fits_or_breaks (fits, n, off, breaks) ->
     begin match Stack.top_opt state.pp_format_stack with
@@ -538,8 +535,7 @@ let set_size state ty =
           Stack.pop_opt state.pp_scan_stack |> ignore
         end
       | Pp_text _ | Pp_stab | Pp_tbegin _ | Pp_tend | Pp_end
-      | Pp_newline | Pp_if_newline | Pp_string_if_newline _
-      | Pp_open_tag _ | Pp_close_tag ->
+      | Pp_newline | Pp_if_newline | Pp_open_tag _ | Pp_close_tag ->
         () (* scan_push is only used for breaks and boxes. *)
 
 
@@ -748,8 +744,8 @@ let pp_print_custom_break state ~fits ~breaks =
 let pp_print_string_if_newline state s =
   if state.pp_curr_depth < state.pp_max_boxes then
     let length = String.length s in
-    enqueue_advance state
-      { size = Size.zero; token= Pp_string_if_newline s; length }
+    let token = Pp_break_or_string_if_newline (None, s) in
+    enqueue_advance state { size = Size.zero; token; length }
 
 
 (* Printing break hints:
@@ -767,7 +763,7 @@ let pp_print_break_or_string_if_newline state width offset s =
   if state.pp_curr_depth < state.pp_max_boxes then
     let size = Size.of_int (- state.pp_right_total) in
     let fits = ("", width, "") and breaks = ("", offset, "") in
-    let token = Pp_break_or_string_if_newline ({ fits; breaks }, s) in
+    let token = Pp_break_or_string_if_newline (Some { fits; breaks }, s) in
     scan_push state true { size; token; length= width }
 
 
