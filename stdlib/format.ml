@@ -62,15 +62,18 @@ type box_type = CamlinternalFormatBasics.block_type =
   | Pp_hbox | Pp_vbox | Pp_hvbox | Pp_hovbox | Pp_box | Pp_fits
 
 
+type fits_or_breaks = {
+  fits: string * int * string;   (* when the line is not split *)
+  breaks: string * int * string; (* when the line is split *)
+}
+
+
 (* The pretty-printing tokens definition:
    are either text to print or pretty printing
    elements that drive indentation and line splitting. *)
 type pp_token =
   | Pp_text of string          (* normal text *)
-  | Pp_break of {              (* complete break *)
-      fits: string * int * string;   (* line is not split *)
-      breaks: string * int * string; (* line is split *)
-    }
+  | Pp_break of fits_or_breaks (* complete break *)
   | Pp_tbreak of int * int     (* go to next tabulation *)
   | Pp_stab                    (* set a tabulation *)
   | Pp_begin of int * box_type (* beginning of a box *)
@@ -83,7 +86,7 @@ type pp_token =
   | Pp_string_if_newline of string
                                (* print a string only if this very
                                   line has been broken *)
-  | Pp_break_or_string_if_newline of int * int * string
+  | Pp_break_or_string_if_newline of fits_or_breaks * string
                                (* print a break if this very line has not
                                   been broken, otherwise print a string *)
   | Pp_fits_or_breaks of string * int * int * string
@@ -427,12 +430,10 @@ let format_pp_token state size = function
   | Pp_break { fits; breaks } ->
     format_pp_break state size fits breaks
 
-  | Pp_break_or_string_if_newline (n, off, s) ->
+  | Pp_break_or_string_if_newline ({ fits; breaks }, s) ->
     if state.pp_is_new_line
     then format_pp_text state size s
-    else
-      let fits = ("", n, "") and breaks = ("", off, "") in
-      format_pp_break state size fits breaks
+    else format_pp_break state size fits breaks
 
   | Pp_fits_or_breaks (fits, n, off, breaks) ->
     begin match Stack.top_opt state.pp_format_stack with
@@ -765,7 +766,8 @@ let pp_print_break state width offset =
 let pp_print_break_or_string_if_newline state width offset s =
   if state.pp_curr_depth < state.pp_max_boxes then
     let size = Size.of_int (- state.pp_right_total) in
-    let token = Pp_break_or_string_if_newline (width, offset, s) in
+    let fits = ("", width, "") and breaks = ("", offset, "") in
+    let token = Pp_break_or_string_if_newline ({ fits; breaks }, s) in
     scan_push state true { size; token; length= width }
 
 
