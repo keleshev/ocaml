@@ -440,7 +440,7 @@ let format_pp_token state size = function
           if ty = Pp_fits then
             fits
           else begin
-            if off >= 0 then begin
+            begin
               if size + String.length breaks >= state.pp_space_left
               then break_new_line state ("", off, "") width
               else break_same_line state ("", n, "")
