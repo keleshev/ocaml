@@ -350,20 +350,19 @@ val print_if_newline : unit -> unit
 *)
 
 val pp_print_string_if_newline : formatter -> string -> unit
-val pp_print_break_or_string_if_newline :
-  formatter -> int -> int -> string -> unit
-val pp_print_fits_or_breaks :
-  formatter -> string -> int -> int -> string -> unit
-
 val print_string_if_newline : string -> unit
 (** Similar to [print_if_newline] followed by [print_string] except that the
   length of the string does not contribute to the width of the enclosing
   box. *)
 
+val pp_print_break_or_string_if_newline :
+  formatter -> int -> int -> string -> unit
 val print_break_or_string_if_newline : int -> int -> string -> unit
 (** Print a full break hint if the preceding line has not just been split.
   Otherwise, print a string. *)
 
+val pp_print_fits_or_breaks :
+  formatter -> string -> int -> int -> string -> unit
 val print_fits_or_breaks : string -> int -> int -> string -> unit
 (** [print_fits_or_breaks fits nspaces offset breaks] prints [fits] if the
   enclosing box fits on one line. Otherwise, prints a break as per
