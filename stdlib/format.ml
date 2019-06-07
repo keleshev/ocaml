@@ -83,7 +83,7 @@ type pp_token =
   | Pp_newline                 (* to force a newline inside a box *)
   | Pp_if_newline              (* to do something only if this very
                                   line has been broken *)
-  | Pp_break_or_string_if_newline of fits_or_breaks option * string
+  | Pp_break_or_text_if_newline of fits_or_breaks option * string
                                (* print an optional break if this very line has
                                   not been broken, otherwise print a string *)
   | Pp_fits_or_breaks of string * int * int * string
@@ -423,7 +423,7 @@ let format_pp_token state size = function
   | Pp_break { fits; breaks } ->
     format_pp_break state size fits breaks
 
-  | Pp_break_or_string_if_newline (break_opt, s) ->
+  | Pp_break_or_text_if_newline (break_opt, s) ->
     if state.pp_is_new_line
     then format_pp_text state (String.length s) s
     else
@@ -524,7 +524,7 @@ let set_size state ty =
     else
       match queue_elem.token with
       | Pp_break _ | Pp_tbreak (_, _)
-      | Pp_break_or_string_if_newline _ | Pp_fits_or_breaks _ ->
+      | Pp_break_or_text_if_newline _ | Pp_fits_or_breaks _ ->
         if ty then begin
           queue_elem.size <- Size.of_int (state.pp_right_total + size);
           Stack.pop_opt state.pp_scan_stack |> ignore
@@ -744,7 +744,7 @@ let pp_print_custom_break state ~fits ~breaks =
 let pp_print_string_if_newline state s =
   if state.pp_curr_depth < state.pp_max_boxes then
     let length = String.length s in
-    let token = Pp_break_or_string_if_newline (None, s) in
+    let token = Pp_break_or_text_if_newline (None, s) in
     enqueue_advance state { size = Size.zero; token; length }
 
 
@@ -763,7 +763,7 @@ let pp_print_break_or_string_if_newline state width offset s =
   if state.pp_curr_depth < state.pp_max_boxes then
     let size = Size.of_int (- state.pp_right_total) in
     let fits = ("", width, "") and breaks = ("", offset, "") in
-    let token = Pp_break_or_string_if_newline (Some { fits; breaks }, s) in
+    let token = Pp_break_or_text_if_newline (Some { fits; breaks }, s) in
     scan_push state true { size; token; length= width }
 
 
