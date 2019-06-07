@@ -356,7 +356,7 @@ let format_pp_break state size fits breaks =
 let format_pp_token state size = function
 
   | Pp_text s ->
-    format_pp_text state size s
+    format_string state s
 
   | Pp_begin (off, ty) ->
     let insertion_point = state.pp_margin - state.pp_space_left in
@@ -425,7 +425,7 @@ let format_pp_token state size = function
 
   | Pp_break_or_text_if_newline (break_opt, s) ->
     if state.pp_is_new_line
-    then format_pp_text state (String.length s) s
+    then format_string state s
     else
       begin match break_opt with
       | Some { fits; breaks } -> format_pp_break state size fits breaks
@@ -447,8 +447,7 @@ let format_pp_token state size = function
             end;
             breaks
           end in
-        if text <> ""
-        then format_pp_text state size text
+        format_string state text
     end
 
    | Pp_open_tag tag_name ->
