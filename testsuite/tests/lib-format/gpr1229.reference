@@ -32,12 +32,13 @@ before  after later
 using print_string_if_newline:
 before  after later
 
-margin = 19
-before
-  broke after
-  final
 margin = 20
-before  after final
+before
+  broke
+  after
+  final
+margin = 35
+before     fits after final
 
 margin = 22
 before
@@ -46,3 +47,12 @@ before
   final
 margin = 23
 before after fit final
+
+margin = 15
+before
+  after
+  pre
+        
+  final
+margin = 25
+before after    final
