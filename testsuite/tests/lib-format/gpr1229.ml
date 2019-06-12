@@ -15,42 +15,28 @@ let print_string_if_newline = pp_print_string_if_newline std_formatter
 let print_or_newline = pp_print_or_newline std_formatter
 let print_fits_or_breaks = pp_print_fits_or_breaks std_formatter
 
-let test_print_string_if_newline m b =
-  set_margin m;
-  open_hovbox 2;
-  print_string "before";
-  print_space ();
-  if b then (
-    print_if_newline ();
-    print_string "if newline"
-  ) else (
-    print_string_if_newline "if newline"
-  );
-  print_space ();
-  print_string "after";
-  open_hvbox 2;
-  print_space ();
-  print_string "later";
-  close_box ();
-  close_box ();
-  print_newline ()
-;;
-
-let print_if_newline_vs_print_string_if_newline m =
+let test_print_string_if_newline m =
+  let case ~first =
+    print_space ();
+    if first
+    then print_string_if_newline "| "
+    else print_string "| ";
+    print_string "Foooo -> foooo"
+  in
   print_string "margin = ";
   print_int m;
   print_newline ();
-  print_endline "using print_if_newline:";
-  test_print_string_if_newline m true;
-  print_endline "using print_string_if_newline:";
-  test_print_string_if_newline m false;
+  set_margin m;
+  open_hvbox 2;
+  print_string "let foo = function";
+  case ~first:true;
+  case ~first:false;
+  close_box ();
   print_newline ()
 ;;
 
-print_if_newline_vs_print_string_if_newline 17;;
-print_if_newline_vs_print_string_if_newline 18;;
-print_if_newline_vs_print_string_if_newline 20;;
-print_if_newline_vs_print_string_if_newline 30;;
+test_print_string_if_newline 15;;
+test_print_string_if_newline 55;;
 
 let test_print_or_newline m =
   print_string "margin = ";
