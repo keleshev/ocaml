@@ -4,18 +4,31 @@ let foo = function
   | Foooo -> foooo
 margin = 55
 let foo = function Foooo -> foooo | Foooo -> foooo
-margin = 20
-before
-  broke
-  after
-  final
-margin = 35
-before     fits after final
 
-margin = 22
-before
-  after
-   broke
-  final
-margin = 23
-before after fit final
+margin = 20
+let foo =
+[
+  (* breaks *) 0
+; (* breaks *) 0
+; (* breaks *) 0
+; (* breaks *) 0
+; (* breaks *) 0
+; (* breaks *) 0
+]
+margin = 60
+let foo = [ 0 ; 0 ; 0 ; 0 ; 0 ; 0 ]
+
+margin = 15
+( a
++ a
++ a
++ a
++ a
++ a
++ a
++ a
++ a
++ a
++ a )
+margin = 50
+a + a + a + a + a + a + a + a + a + a + a

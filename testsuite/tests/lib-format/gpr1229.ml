@@ -2,7 +2,7 @@
 
 (*
 A test file for Format.print_string_if_newline,
-print_break_or_string_if_newline and print_fits_or_breaks.
+print_or_newline and print_fits_or_breaks.
 *)
 
 let set_margin n =
@@ -38,25 +38,37 @@ let test_print_string_if_newline m =
 test_print_string_if_newline 15;;
 test_print_string_if_newline 55;;
 
+print_newline ();;
+
 let test_print_or_newline m =
+  let sep ~first =
+    print_space ();
+    if first
+    then print_or_newline 0 0 "" "  (* breaks *) "
+    else print_or_newline 0 0 "; " "; (* breaks *) "
+  in
   print_string "margin = ";
   print_int m;
   print_newline ();
   set_margin m;
-  open_hvbox 2;
-  print_string "before";
+  open_hvbox 0;
+  print_string "let foo ="; print_space ();
+  print_string "[";
+  sep ~first:true;
+  print_string "0"; sep ~first:false;
+  print_string "0"; sep ~first:false;
+  print_string "0"; sep ~first:false;
+  print_string "0"; sep ~first:false;
+  print_string "0"; sep ~first:false;
+  print_string "0";
   print_space ();
-  print_or_newline 4 0 "fits" "broke";
-  print_space ();
-  print_string "after";
-  print_space ();
-  print_string "final";
+  print_string "]";
   close_box ();
   print_newline ()
 ;;
 
 test_print_or_newline 20;;
-test_print_or_newline 35;;
+test_print_or_newline 60;;
 
 print_newline ();;
 
@@ -65,17 +77,16 @@ let test_print_fits_or_breaks m =
   print_int m;
   print_newline ();
   set_margin m;
-  open_hvbox 2;
-  print_string "before";
-  print_space ();
-  print_string "after";
-  print_space ();
-  print_fits_or_breaks "fit" 1 0 "broke";
-  print_space ();
-  print_string "final";
+  open_hvbox 0;
+  print_fits_or_breaks "" 0 0 "( ";
+  print_string "a";
+  for i = 1 to 10 do
+    print_space (); print_string "+ a"
+  done;
+  print_fits_or_breaks "" 0 1 " )";
   close_box ();
   print_newline ()
 ;;
 
-test_print_fits_or_breaks 22;;
-test_print_fits_or_breaks 23;;
+test_print_fits_or_breaks 15;;
+test_print_fits_or_breaks 50;;
