@@ -47,12 +47,3 @@ before
   final
 margin = 23
 before after fit final
-
-margin = 15
-before
-  after
-  pre
-        
-  final
-margin = 25
-before after    final

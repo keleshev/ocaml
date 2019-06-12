@@ -11,7 +11,6 @@ let set_margin n =
 
 open Format;;
 
-let print_pre_break = pp_print_pre_break std_formatter
 let print_string_if_newline = pp_print_string_if_newline std_formatter
 let print_or_newline = pp_print_or_newline std_formatter
 let print_fits_or_breaks = pp_print_fits_or_breaks std_formatter
@@ -94,25 +93,3 @@ let test_print_fits_or_breaks m =
 
 test_print_fits_or_breaks 22;;
 test_print_fits_or_breaks 23;;
-
-print_newline ();;
-
-let test_print_pre_break m =
-  print_string "margin = ";
-  print_int m;
-  print_newline ();
-  set_margin m;
-  open_hvbox 2;
-  print_string "before";
-  print_space ();
-  print_string "after";
-  print_space ();
-  print_pre_break 2 "pre" 6;
-  print_space ();
-  print_string "final";
-  close_box ();
-  print_newline ()
-;;
-
-test_print_pre_break 15;;
-test_print_pre_break 25;;
