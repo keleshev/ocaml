@@ -90,9 +90,7 @@ type pp_token =
                                (* print a break and the first string if this
                                   very line has not been broken, otherwise
                                   print the second string *)
-  | Pp_fits_or_breaks of string * int * int * string
-                               (* print a string if the enclosing box fits,
-                                  otherwise print a break and a string *)
+  | Pp_for_layout of {horizontal: string; vertical: string; compacting: string}
   | Pp_open_tag of stag         (* opening a tag name *)
   | Pp_close_tag               (* closing the most recently open tag *)
 
@@ -437,22 +435,18 @@ let format_pp_token state size = function
     then format_string state breaks
     else format_pp_break state size ("", n, fits) ("", off, breaks)
 
-  | Pp_fits_or_breaks (fits, n, off, breaks) ->
+  | Pp_for_layout {horizontal; vertical; compacting} ->
     begin match Stack.top_opt state.pp_format_stack with
     | None -> () (* No open box. *)
-    | Some { box_type= ty; width } ->
-        let text =
-          if ty = Pp_fits then
-            fits
-          else begin
-            if off > min_int then begin
-              if size + n + String.length breaks >= state.pp_space_left
-              then break_new_line state ("", off, "") width
-              else break_same_line state ("", n, "")
-            end;
-            breaks
-          end in
-        format_string state text
+    | Some { box_type; width=_ } ->
+      begin match box_type with
+      | Pp_hbox | Pp_fits ->
+        format_string state horizontal
+      | Pp_vbox | Pp_hvbox ->
+        format_string state vertical
+      | Pp_box | Pp_hovbox ->
+        format_string state compacting
+      end
     end
 
    | Pp_open_tag tag_name ->
@@ -528,7 +522,7 @@ let set_size state ty =
     else
       match queue_elem.token with
       | Pp_break _ | Pp_tbreak (_, _)
-      | Pp_or_newline _ | Pp_fits_or_breaks _ ->
+      | Pp_or_newline _ | Pp_for_layout _ ->
         if ty then begin
           queue_elem.size <- Size.of_int (state.pp_right_total + size);
           Stack.pop_opt state.pp_scan_stack |> ignore
@@ -773,13 +767,11 @@ let pp_print_or_newline state width offset fits breaks =
     scan_push state true { size; token; length= width }
 
 
-(* To format a string if the enclosing box fits, and otherwise to format a
-   break and a string. *)
-let pp_print_fits_or_breaks state fits nspaces offset breaks =
+let pp_print_for_layout state ~horizontal ~vertical ~compacting =
   if state.pp_curr_depth < state.pp_max_boxes then
     let size = Size.of_int (- state.pp_right_total) in
-    let token = Pp_fits_or_breaks (fits, nspaces, offset, breaks) in
-    let length = String.length fits in
+    let token = Pp_for_layout {horizontal; vertical; compacting} in
+    let length = String.length horizontal in
     scan_push state true { size; token; length }
 
 

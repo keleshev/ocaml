@@ -7,6 +7,7 @@ A test file for Format.pp_print_custom_break.
 *)
 let fprintf, printf, list = Format.(fprintf, printf, pp_print_list)
 let string, custom_break = Format.(pp_print_string, pp_print_custom_break)
+let for_layout = Format.pp_print_for_layout
 
 let () = Format.set_margin 30
 
@@ -60,5 +61,40 @@ module Format_function = struct
 
   let () =
     printf "# Printing function: first pipe character is optional@\n@\n";
+    test format example
+end
+
+
+module Format_do_notation = struct
+  let pp_sep ppf () =
+    for_layout ppf ~horizontal:";" ~vertical:"" ~compacting:";";
+    custom_break ppf ~fits:("", 1, "") ~breaks:("", 3, "")
+
+  let rec format box_type ppf items =
+    fprintf ppf "@[<%s>do %t%a%t@]"
+      box_type
+      (for_layout ~horizontal:"{" ~vertical:"" ~compacting:"{")
+      (list ~pp_sep string) items
+      (for_layout ~horizontal:"}" ~vertical:"" ~compacting:"}")
+
+  let () =
+    printf "# Haskell do-notation@\n@\n";
+    test format example
+end
+
+module Format_ocamlformat_example = struct
+  let pp_sep ppf () =
+    custom_break ppf ~fits:("", 1, "") ~breaks:("", 0, "");
+    string ppf "+ "
+
+  let rec format box_type ppf items =
+    fprintf ppf "@[<%s>%t%a%t@]"
+      box_type
+      (for_layout ~horizontal:"" ~vertical:"( " ~compacting:"( ")
+      (list ~pp_sep string) items
+      (for_layout ~horizontal:"" ~vertical:" )" ~compacting:" )")
+
+  let () =
+    printf "# Example from ocamlformat@\n@\n";
     test format example
 end

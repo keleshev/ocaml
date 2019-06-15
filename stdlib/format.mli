@@ -358,11 +358,8 @@ val pp_print_or_newline : formatter -> int -> int -> string -> string -> unit
 (** Print a full break hint and the first string if the preceding line has
   not just been split. Otherwise, print the second string. *)
 
-val pp_print_fits_or_breaks :
-  formatter -> string -> int -> int -> string -> unit
-(** [pp_print_fits_or_breaks fmt fits nspaces offset breaks] prints [fits] if
-  the enclosing box fits on one line. Otherwise, prints a break as per
-  [print_break nspaces offset] followed by [breaks]. *)
+val pp_print_for_layout :
+  formatter -> horizontal:string -> vertical:string -> compacting:string -> unit
 
 (** {1 Pretty-printing termination} *)
 

@@ -157,3 +157,97 @@ function Foo -> ()
 | Grault -> () | Garply -> ()
 ```
 
+# Haskell do-notation
+
+## The "v" box
+```
+do Foo
+   Baz
+   Bar
+   Qux
+   Quux
+   Quuz
+   Corge
+   Grault
+   Garply
+```
+
+## The "b" box
+```
+do {Foo; Baz; Bar; Qux; Quux;
+   Quuz; Corge; Grault;
+   Garply}
+```
+
+## The "h" box
+```
+do {Foo; Baz; Bar; Qux; Quux; Quuz; Corge; Grault; Garply}
+```
+
+## The "hv" box
+```
+do Foo
+   Baz
+   Bar
+   Qux
+   Quux
+   Quuz
+   Corge
+   Grault
+   Garply
+```
+
+## The "hov" box
+```
+do {Foo; Baz; Bar; Qux; Quux;
+   Quuz; Corge; Grault;
+   Garply}
+```
+
+# Example from ocamlformat
+
+## The "v" box
+```
+( Foo
++ Baz
++ Bar
++ Qux
++ Quux
++ Quuz
++ Corge
++ Grault
++ Garply )
+```
+
+## The "b" box
+```
+( Foo + Baz + Bar + Qux
++ Quux + Quuz + Corge
++ Grault + Garply )
+```
+
+## The "h" box
+```
+Foo + Baz + Bar + Qux + Quux + Quuz + Corge + Grault + Garply
+```
+
+## The "hv" box
+```
+( Foo
++ Baz
++ Bar
++ Qux
++ Quux
++ Quuz
++ Corge
++ Grault
++ Garply )
+```
+
+## The "hov" box
+```
+( Foo + Baz + Bar + Qux
++ Quux + Quuz + Corge
++ Grault + Garply )
+```
+
