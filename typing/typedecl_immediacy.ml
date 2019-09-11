@@ -16,12 +16,7 @@
 
 open Types
 
-type error =
-  | Bad_immediacy_attribute of {
-      written_by_user : Type_immediacy.t;
-      real : Type_immediacy.t;
-    }
-exception Error of Location.t * error
+exception Error of Location.t * Type_immediacy.mismatch
 
 let compute_decl env tdecl =
   match (tdecl.type_kind, tdecl.type_manifest) with
@@ -56,12 +51,8 @@ let property : (Type_immediacy.t, unit) Typedecl_properties.property =
   let update_decl decl immediacy = { decl with type_immediate = immediacy } in
   let check _env _id decl () =
     let written_by_user = Type_immediacy.of_attributes decl.type_attributes in
-    if Type_immediacy.more_often_immediate
-        written_by_user
-        decl.type_immediate then
-      raise (Error (decl.type_loc,
-                    Bad_immediacy_attribute
-                      { written_by_user; real = decl.type_immediate })) in
+    Type_immediacy.detect_mismatch written_by_user decl.type_immediate
+    |> Option.iter (fun mismatch -> raise (Error (decl.type_loc, mismatch))) in
   {
     eq;
     merge;

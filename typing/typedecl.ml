@@ -55,7 +55,7 @@ type error =
   | Multiple_native_repr_attributes
   | Cannot_unbox_or_untag_type of native_repr_kind
   | Deep_unbox_or_untag_attribute of native_repr_kind
-  | Immediacy of Typedecl_immediacy.error
+  | Immediacy_mismatch of Type_immediacy.mismatch
   | Bad_unboxed_attribute of string
   | Wrong_unboxed_type_float
   | Boxed_and_unboxed
@@ -1001,7 +1001,8 @@ let transl_type_decl env rec_flag sdecl_list =
       |> Typedecl_immediacy.update_decls env
     with
     | Typedecl_variance.Error (loc, err) -> raise (Error (loc, Variance err))
-    | Typedecl_immediacy.Error (loc, err) -> raise (Error (loc, Immediacy err))
+    | Typedecl_immediacy.Error (loc, err) ->
+        raise (Error (loc, Immediacy_mismatch err))
   in
   (* Compute the final environment with variance and immediacy *)
   let final_env = add_types_to_env decls env in
@@ -1806,24 +1807,14 @@ let report_error ppf = function
          a direct argument or result of the primitive,@ \
          it should not occur deeply into its type.@]"
         (match kind with Unboxed -> "@unboxed" | Untagged -> "@untagged")
-  | Immediacy
-      (Typedecl_immediacy.Bad_immediacy_attribute
-         { written_by_user; real }) ->
-      fprintf ppf "@[%a@]" Format.pp_print_text
-        (Printf.sprintf
-           "The attributes attached to this type indicate that it is \
-            %s. However, it is really %s.%s"
-           (Type_immediacy.describe written_by_user)
-           (Type_immediacy.describe real)
-           (match written_by_user with
-            | Type_immediacy.Unknown -> ""
-            | Type_immediacy.Always ->
-                "\nTypes marked with the immediate attribute must be \
-                 non-pointer types like int or bool."
-            | Type_immediacy.Always_on_64bits ->
-                "\nTypes marked with the immediate64 attribute must be \
-                 produced using the Stdlib.Sys.Immediate64.Make \
-                 functor."))
+  | Immediacy_mismatch Type_immediacy.Immediate_mismatch ->
+      fprintf ppf "@[%s@ %s@]"
+        "Types marked with the immediate attribute must be"
+        "non-pointer types like int or bool"
+  | Immediacy_mismatch Type_immediacy.Immediate64_mismatch ->
+      fprintf ppf "@[%s@ %s@]"
+        "Types marked with the immediate64 attribute must be"
+        "produced using the Stdlib.Sys.Immediate64.Make functor."
   | Bad_unboxed_attribute msg ->
       fprintf ppf "@[This type cannot be unboxed because@ %s.@]" msg
   | Wrong_unboxed_type_float ->

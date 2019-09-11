@@ -17,18 +17,17 @@ type t =
   | Always
   | Always_on_64bits
 
-let more_often_immediate a b =
+type mismatch =
+  | Immediate_mismatch
+  | Immediate64_mismatch
+
+let detect_mismatch a b =
   match a, b with
-  | Always, (Unknown | Always_on_64bits)
-  | Always_on_64bits, Unknown -> true
+  | Always, (Unknown | Always_on_64bits) -> Some Immediate_mismatch
+  | Always_on_64bits, Unknown -> Some Immediate64_mismatch
   | Unknown, _
   | Always, Always
-  | Always_on_64bits, (Always | Always_on_64bits) -> false
-
-let describe = function
-  | Unknown -> "not an immediate type"
-  | Always -> "always an immediate type"
-  | Always_on_64bits -> "only an immediate type on 64 bit platforms"
+  | Always_on_64bits, (Always | Always_on_64bits) -> None
 
 let of_attributes attrs =
   match

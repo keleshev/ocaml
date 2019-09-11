@@ -19,15 +19,12 @@ type t =
   | Always
   | Always_on_64bits
 
-(** [more_often_immediate a b] returns [true] iff [a] is immediate in
-    as many or more cases than [b]. For instance, [Always] is more
-    often immediate than [Always_on_64bits]. *)
-val more_often_immediate : t -> t -> bool
+type mismatch =
+  | Immediate_mismatch
+  | Immediate64_mismatch
 
-(** Return a description of the immediacy status of a type, such as
-    "always an immediate type" or "only an immediate type on 64 bit
-    platforms". *)
-val describe : t -> string
+(** TODO *)
+val detect_mismatch : t -> t -> mismatch option
 
 (** Return the immediateness of a type as indicated by the user via
     attributes *)

@@ -177,7 +177,7 @@ type type_mismatch =
   | Record_mismatch of record_mismatch
   | Variant_mismatch of variant_mismatch
   | Unboxed_representation of position
-  | Immediate of Type_immediacy.t * Type_immediacy.t
+  | Immediacy_mismatch of Type_immediacy.mismatch
 
 let report_label_mismatch first second ppf err =
   let pr fmt = Format.fprintf ppf fmt in
@@ -267,14 +267,10 @@ let report_type_mismatch0 first second decl ppf err =
       pr "Their internal representations differ:@ %s %s %s."
          (choose ord first second) decl
          "uses unboxed representation"
-  | Immediate (a, b) ->
-      let first = StringLabels.capitalize_ascii first in
-      match a with
-      | Unknown -> pr "%s is not an immediate type." first
-      | _ ->
-          pr "%s is %s while %s is %s."
-            first (Type_immediacy.describe a)
-            second (Type_immediacy.describe b)
+  | Immediacy_mismatch Type_immediacy.Immediate_mismatch ->
+      pr "%s is not an immediate type." (String.capitalize_ascii first)
+  | Immediacy_mismatch Type_immediacy.Immediate64_mismatch ->
+      pr "%s is not an immediate64 type." (String.capitalize_ascii first)
 
 let report_type_mismatch first second decl ppf err =
   if err = Manifest then () else
@@ -449,14 +445,10 @@ let type_declarations ?(equality = false) ~loc env ~mark name
   let abstr = decl2.type_kind = Type_abstract && decl2.type_manifest = None in
   (* If attempt to assign a non-immediate type (e.g. string) to a type that
    * must be immediate, then we error *)
+  if not abstr then None else
   let err =
-    if abstr &&
-       Type_immediacy.more_often_immediate
-         decl2.type_immediate
-         decl1.type_immediate
-    then
-      Some (Immediate (decl1.type_immediate, decl2.type_immediate))
-    else None
+    Type_immediacy.detect_mismatch decl2.type_immediate decl1.type_immediate
+    |> Option.map (fun mismatch -> Immediacy_mismatch mismatch)
   in
   if err <> None then err else
   let need_variance =

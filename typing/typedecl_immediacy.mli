@@ -14,12 +14,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-type error =
-  | Bad_immediacy_attribute of {
-      written_by_user : Type_immediacy.t;
-      real : Type_immediacy.t;
-    }
-exception Error of Location.t * error
+exception Error of Location.t * Type_immediacy.mismatch
 
 val compute_decl : Env.t -> Types.type_declaration -> Type_immediacy.t
 

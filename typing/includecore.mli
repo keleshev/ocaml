@@ -63,7 +63,7 @@ type type_mismatch =
   | Record_mismatch of record_mismatch
   | Variant_mismatch of variant_mismatch
   | Unboxed_representation of position
-  | Immediate of Type_immediacy.t * Type_immediacy.t
+  | Immediacy_mismatch of Type_immediacy.mismatch
 
 val value_descriptions:
   loc:Location.t -> Env.t -> string ->
